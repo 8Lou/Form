@@ -23,5 +23,9 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src')
     }
+  },
+  base: '/https://8lou.github.io/Form/', 
+  build: {
+    outDir: 'docs' 
   }
 })
