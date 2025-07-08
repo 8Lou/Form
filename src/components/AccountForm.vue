@@ -63,14 +63,17 @@
 <script setup lang="ts">
 import { useAccountStore } from '@/stores/accountStore'
 import { storeToRefs } from 'pinia'
+import { useQuasar } from 'quasar'
 import { onMounted, ref } from 'vue'
+import { Account } from '@/types/account'
 
 const accountStore = useAccountStore()
 const { accounts } = storeToRefs(accountStore)
 const { addAccount, removeAccount, updateAccount, init } = accountStore
+const $q = useQuasar()
 
 onMounted(() => {
-  init()
+init()
 })
 
 const accountTypes = [
@@ -89,27 +92,76 @@ const hasErrors = (account: Account) => {
   return errorStates.value[account.id]?.size > 0
 }
 
-const validateAccount = (account: Account) => {
-  const errors = new Set<string>()
+const validateAccount = async (account: Account) => {
+  try {
+    const errors = new Set<string>()
 
-  if (!account.login || account.login.length > 100) {
-    errors.add('login')
+    if (!account.login || account.login.length > 100) {
+      errors.add('login')
+    }
+
+    if (account.type === 'Локальная' && (!account.password || account.password.length > 100)) {
+      errors.add('password')
+    }
+
+    if (account.labelsStr && account.labelsStr.length > 50) {
+      errors.add('labels')
+    }
+
+    errorStates.value[account.id] = errors
+    await accountStore.updateAccount(account.id, account)
+  } catch (err) {
+    console.error('Validation failed:', err)
   }
-
-  if (account.type === 'Локальная' && (!account.password || account.password.length > 100)) {
-    errors.add('password')
-  }
-
-  if (account.labelsStr && account.labelsStr.length > 50) {
-    errors.add('labels')
-  }
-
-  errorStates.value[account.id] = errors
-  updateAccount(account.id, account)
 }
 
-const handleRemoveAccount = (id: string) => {
-  removeAccount(id)
+const handleTypeChange = (account: Account) => async (newType: Account['type']) => {
+  try {
+    account.type = newType; // Обновляем тип
+    const updates: Partial<Account> = { 
+      type: newType 
+    };
+    
+    if (newType === 'LDAP') {
+      updates.password = null;
+    }
+
+    await accountStore.updateAccount(account.id, updates);
+    validateAccount(account);
+  } catch (err) {
+    console.error('Type change failed:', err);
+    $q.notify({
+      type: 'negative',
+      message: 'Ошибка изменения типа'
+    });
+  }
+};
+
+const handleRemoveAccount = async (id: string) => {
+  try {
+    await accountStore.removeAccount(id)
+  } catch (err) {
+    console.error('Remove failed:', err)
+    $q.notify({
+      type: 'negative',
+      message: 'Не удалось удалить запись'
+    })
+  }
+}
+
+const updateLabels = async (account: Account) => {
+  try {
+    await accountStore.updateAccount(account.id, {
+      labelsStr: account.labelsStr
+    })
+    await validateAccount(account)
+  } catch (err) {
+    console.error('Update labels failed:', err)
+    $q.notify({
+      type: 'negative',
+      message: 'Ошибка сохранения меток'
+    })
+  }
 }
 </script>
 
@@ -122,10 +174,6 @@ const handleRemoveAccount = (id: string) => {
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-}
-
-.q-card-section {
-  /* flex-grow: 1; */
 }
 
 .q-card:hover {
