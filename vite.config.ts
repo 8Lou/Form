@@ -1,10 +1,17 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import { quasar, transformAssetUrls } from '@quasar/vite-plugin'
 
-export default defineConfig({
-  plugins: [
+export default defineConfig(({ mode }) => {
+  // переменные окружения (для GitHub Pages)
+  const env = loadEnv(mode, process.cwd(), '');
+
+  // - в продакшене = '/Form/' (для GitHub Pages)
+  // - в разработке = '/' (локальный сервер)
+  const base = mode === 'production' ? '/Form/' : '/';
+
+  return {  plugins: [
     vue({
       template: { transformAssetUrls }
     }),
@@ -24,8 +31,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src')
     }
   },
-  base: '/https://8lou.github.io/Form/', 
-  build: {
-    outDir: 'docs' 
-  }
-})
+    base,
+      build: {
+    outDir: 'dist' 
+    },
+  };
+});
