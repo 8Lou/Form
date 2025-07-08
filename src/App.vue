@@ -20,4 +20,15 @@ body {
   margin-bottom: 20px;
   border-radius: 8px;
 }
+.q-field__control {
+  border-radius: 4px;
+}
+
+.q-field--outlined .q-field__control {
+  border-radius: 4px;
+}
+
+.q-field--filled .q-field__control {
+  border-radius: 4px 4px 0 0;
+}
 </style>
